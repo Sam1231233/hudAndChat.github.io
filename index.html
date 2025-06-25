@@ -362,7 +362,7 @@
             hungerValue.textContent = Math.round(stats.hunger);
             thirstValue.textContent = Math.round(stats.thirst);
             
-            // Обновляем деньги (с защитой от ошибки)
+            // Обновляем деньги
             moneyValue.textContent = `$${(stats.money || 0).toLocaleString()}`;
         }
         
@@ -493,7 +493,8 @@
                 const message = chatInput.value.trim();
                 if (message !== '') {
                     if (hasAlt) {
-                        alt.emit('chat:sendMessage', message);
+                        // Передаем сообщение через callback
+                        alt.emit('chat:sendInput', message);
                     } else {
                         // Для демонстрации на GitHub Pages
                         addMessageToChat(`Вы: ${message}`);
@@ -501,9 +502,7 @@
                     chatInput.value = '';
                     
                     // Закрываем чат после отправки
-                    if (hasAlt) {
-                        setChatActive(false);
-                    }
+                    setChatActive(false);
                 }
             }
         });
@@ -534,11 +533,9 @@
                 updateMicStatus(false);
                 
                 // Добавляем демо-сообщения
-                setTimeout(() => {
-                    addMessageToChat("Добро пожаловать на Gang RolePlay!");
-                    addMessageToChat("Используйте T для открытия чата");
-                    addNotification("Команды: /heal, /veh, /fly");
-                }, 1000);
+                addMessageToChat("Добро пожаловать на Gang RolePlay!");
+                addMessageToChat("Используйте T для открытия чата");
+                addNotification("Команды: /heal, /veh, /fly");
             }
         });
     </script>
