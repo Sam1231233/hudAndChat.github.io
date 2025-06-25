@@ -379,6 +379,34 @@
                 updateMicStatus(isTalking);
             });
         }
+
+        chatInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+            const message = chatInput.value.trim();
+            if (message !== '') {
+                if (hasAlt) {
+                    // ОТПРАВКА ЧЕРЕЗ КЛИЕНТСКИЙ СКРИПТ
+                    alt.emit('chat:sendInput', message);
+                } else {
+                    // Для демонстрации
+                    addMessageToChat(`Вы: ${message}`);
+                }
+                chatInput.value = '';
+                setChatActive(false);
+            }
+        }
+    });
+
+    // Обработчик отправки сообщения
+    if (hasAlt) {
+        alt.on('chat:sendInput', (message) => {
+            // ДЕБАГ: Логируем введенное сообщение
+            console.log(`[WEBVIEW] Отправка сообщения: ${message}`);
+            
+            // Отправляем на сервер
+            alt.emit('chat:message', message);
+        });
+    }
         
         function updateMicStatus(isTalking) {
             if (isTalking) {
