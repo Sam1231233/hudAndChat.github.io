@@ -32,7 +32,7 @@
             z-index: 100;
         }
         
-        /* КВАДРАТНЫЙ HUD вместо овального */
+        /* Квадратный HUD справа снизу */
         .square-hud {
             position: absolute;
             bottom: 20px;
@@ -40,7 +40,7 @@
             width: 360px;
             height: 90px;
             background: rgba(10, 10, 20, 0.85);
-            border-radius: 8px; /* Скругленные углы */
+            border-radius: 8px;
             display: flex;
             align-items: center;
             padding: 0 20px;
@@ -138,11 +138,11 @@
         .time-item { color: #9B59B6; }
         .money-item { color: #27AE60; }
         
-        /* Чат */
+        /* Чат - ПЕРЕМЕЩЕН В ЛЕВЫЙ ВЕРХНИЙ УГОЛ */
         .chat-container {
             position: absolute;
-            bottom: 120px;
-            right: 20px;
+            top: 20px; /* Изменено с bottom на top */
+            left: 20px; /* Изменено с right на left */
             width: 360px;
             max-height: 200px;
             display: flex;
@@ -216,9 +216,9 @@
 </head>
 <body>
     <!-- Название сервера -->
-    <div class="server-name">Gang Role Play</div>
+    <div class="server-name" id="serverName">Gang Role Play</div>
     
-    <!-- КВАДРАТНЫЙ HUD вместо овального -->
+    <!-- Квадратный HUD -->
     <div class="square-hud">
         <!-- Статистика игрока -->
         <div class="player-stats">
@@ -295,7 +295,7 @@
         </div>
     </div>
     
-    <!-- Чат -->
+    <!-- Чат - ПЕРЕМЕЩЕН В ЛЕВЫЙ ВЕРХНИЙ УГОЛ -->
     <div class="chat-container" id="chatContainer">
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-container">
@@ -311,6 +311,7 @@
 
     <script>
         // Элементы интерфейса
+        const serverName = document.getElementById('serverName');
         const healthCircle = document.getElementById('healthCircle');
         const healthValue = document.getElementById('healthValue');
         const armorCircle = document.getElementById('armorCircle');
@@ -327,8 +328,32 @@
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         
+        // Проверка на наличие alt объекта
+        const hasAlt = typeof alt !== 'undefined';
+        
+        // Фиксированный список сообщений (для сохранения истории)
+        let messageHistory = [];
+        const MAX_HISTORY = 100;
+        
         // Обновление статистики
-        alt.on('hud:updateStats', (stats) => {
+        if (hasAlt) {
+            alt.on('hud:updateStats', (stats) => {
+                updateStats(stats);
+            });
+        } else {
+            // Для демонстрации на GitHub Pages
+            setInterval(() => {
+                updateStats({
+                    health: Math.random() * 100,
+                    armor: Math.random() * 100,
+                    hunger: Math.random() * 100,
+                    thirst: Math.random() * 100,
+                    money: Math.floor(Math.random() * 10000)
+                });
+            }, 3000);
+        }
+        
+        function updateStats(stats) {
             // Обновляем круговые индикаторы
             updateCircle(healthCircle, stats.health);
             updateCircle(armorCircle, stats.armor);
@@ -341,12 +366,25 @@
             hungerValue.textContent = Math.round(stats.hunger);
             thirstValue.textContent = Math.round(stats.thirst);
             
-            // Обновляем деньги
-            moneyValue.textContent = `$${stats.money.toLocaleString()}`;
-        });
+            // Обновляем деньги (с защитой от ошибки)
+            moneyValue.textContent = `$${stats.money?.toLocaleString() || '0'}`;
+        }
+        
+        // Обновление информации о сервере
+        if (hasAlt) {
+            alt.on('hud:updateServerInfo', (serverInfo) => {
+                serverName.textContent = serverInfo.name;
+            });
+        }
         
         // Обновление активности микрофона
-        alt.on('voice:setTalking', (isTalking) => {
+        if (hasAlt) {
+            alt.on('voice:setTalking', (isTalking) => {
+                updateMicStatus(isTalking);
+            });
+        }
+        
+        function updateMicStatus(isTalking) {
             if (isTalking) {
                 micIcon.style.color = '#2ECC71';
                 micStatus.textContent = 'TALK';
@@ -356,14 +394,29 @@
                 micStatus.textContent = 'MUTE';
                 micStatus.style.color = '#E74C3C';
             }
-        });
+        }
         
         // Обновление времени
-        alt.on('hud:updateTime', (time) => {
+        if (hasAlt) {
+            alt.on('hud:updateTime', (time) => {
+                updateTime(time);
+            });
+        } else {
+            // Для демонстрации на GitHub Pages
+            setInterval(() => {
+                const now = new Date();
+                updateTime({
+                    hours: now.getHours(),
+                    minutes: now.getMinutes()
+                });
+            }, 1000);
+        }
+        
+        function updateTime(time) {
             const hours = time.hours.toString().padStart(2, '0');
             const minutes = time.minutes.toString().padStart(2, '0');
             timeValue.textContent = `${hours}:${minutes}`;
-        });
+        }
         
         // Функция обновления кругового индикатора
         function updateCircle(element, percent) {
@@ -380,63 +433,127 @@
         }
         
         // Обработка чата
-        alt.on('chat:setActive', (active) => {
+        if (hasAlt) {
+            alt.on('chat:setActive', (active) => {
+                setChatActive(active);
+            });
+        }
+        
+        function setChatActive(active) {
             chatContainer.classList.toggle('active', active);
             if (active) {
                 chatInput.focus();
             }
-        });
+        }
         
-        alt.on('chat:updateMessages', (messages) => {
+        if (hasAlt) {
+            alt.on('chat:updateMessages', (messages) => {
+                // Сохраняем все сообщения в истории
+                messageHistory = [...messageHistory, ...messages];
+                
+                // Ограничиваем историю
+                if (messageHistory.length > MAX_HISTORY) {
+                    messageHistory = messageHistory.slice(messageHistory.length - MAX_HISTORY);
+                }
+                
+                updateChatMessages(messageHistory);
+            });
+        }
+        
+        function updateChatMessages(messages) {
             chatMessages.innerHTML = '';
             messages.forEach(msg => {
                 const msgElement = document.createElement('div');
-                msgElement.className = 'message';
+                msgElement.className = msg.startsWith('*') ? 'message notification' : 'message';
                 msgElement.textContent = msg;
                 chatMessages.appendChild(msgElement);
             });
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        });
+        }
         
-        alt.on('hud:notification', (message) => {
-            const notification = document.createElement('div');
-            notification.className = 'message notification';
-            notification.textContent = message;
-            chatMessages.appendChild(notification);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        });
+        if (hasAlt) {
+            alt.on('hud:notification', (message) => {
+                addNotification(message);
+            });
+        }
+        
+        function addNotification(message) {
+            // Добавляем уведомление в историю
+            messageHistory.push(`* ${message}`);
+            
+            // Ограничиваем историю
+            if (messageHistory.length > MAX_HISTORY) {
+                messageHistory = messageHistory.slice(messageHistory.length - MAX_HISTORY);
+            }
+            
+            updateChatMessages(messageHistory);
+        }
         
         // Отправка сообщений
         chatInput.addEventListener('keyup', (e) => {
             if (e.key === 'Enter') {
                 const message = chatInput.value.trim();
                 if (message !== '') {
-                    if (message.startsWith('/')) {
-                        handleCommand(message);
-                    } else {
+                    if (hasAlt) {
+                        // Исправление для команд
                         alt.emit('chat:message', message);
+                    } else {
+                        // Для демонстрации на GitHub Pages
+                        addNotification(`Сообщение отправлено: ${message}`);
                     }
                     chatInput.value = '';
+                    
+                    // Закрываем чат после отправки
+                    if (hasAlt) {
+                        setChatActive(false);
+                    }
                 }
             }
         });
         
-        // Обработка команд
-        function handleCommand(command) {
-            alt.emit('chat:command', command);
-        }
-        
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
-            // Запрашиваем начальные данные
-            alt.emit('hud:requestStats');
-            alt.emit('hud:requestTime');
-            alt.emit('voice:requestStatus');
-            
-            // Установка времени обновления
-            setInterval(() => {
+            if (hasAlt) {
+                // Запрашиваем начальные данные
+                alt.emit('hud:requestStats');
                 alt.emit('hud:requestTime');
-            }, 60000);
+                alt.emit('voice:requestStatus');
+                
+                // Установка времени обновления
+                setInterval(() => {
+                    alt.emit('hud:requestTime');
+                }, 60000);
+            } else {
+                // Демо-режим для GitHub Pages
+                updateTime({
+                    hours: new Date().getHours(),
+                    minutes: new Date().getMinutes()
+                });
+                
+                updateStats({
+                    health: 85,
+                    armor: 50,
+                    hunger: 70,
+                    thirst: 60,
+                    money: 1500
+                });
+                
+                updateMicStatus(false);
+                
+                // Добавляем демо-сообщения
+                setTimeout(() => {
+                    updateChatMessages([
+                        "Добро пожаловать на Gang RolePlay!",
+                        "Используйте T для открытия чата",
+                        "Команды: /heal, /veh, /fly"
+                    ]);
+                    messageHistory = [
+                        "Добро пожаловать на Gang RolePlay!",
+                        "Используйте T для открытия чата",
+                        "Команды: /heal, /veh, /fly"
+                    ];
+                }, 1000);
+            }
         });
     </script>
 </body>
