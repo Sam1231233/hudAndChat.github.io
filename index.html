@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gang RolePlay HUD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            overflow: hidden;
+            color: white;
+            background: transparent;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* Название сервера */
+        .server-name {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+        
+        /* КВАДРАТНЫЙ HUD вместо овального */
+        .square-hud {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 360px;
+            height: 90px;
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 8px; /* Скругленные углы */
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 100;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        /* Статистика игрока */
+        .player-stats {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex: 1;
+        }
+        
+        /* Круговые индикаторы */
+        .circular-stat {
+            position: relative;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .circular-progress {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--color) 0deg,
+                transparent 0deg
+            );
+            mask: radial-gradient(white 55%, transparent 56%);
+            -webkit-mask: radial-gradient(white 55%, transparent 56%);
+        }
+        
+        .circular-content {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        .circular-icon {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+        
+        .circular-value {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .health-icon { color: #E74C3C; }
+        .armor-icon { color: #3498DB; }
+        .hunger-icon { color: #F39C12; }
+        .thirst-icon { color: #2980B9; }
+        
+        .health-value { color: #E74C3C; }
+        .armor-value { color: #3498DB; }
+        .hunger-value { color: #F39C12; }
+        .thirst-value { color: #2980B9; }
+        
+        /* Дополнительная информация */
+        .additional-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-left: 10px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            margin-left: 15px;
+            height: 100%;
+            justify-content: center;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            gap: 8px;
+        }
+        
+        .info-icon {
+            font-size: 14px;
+        }
+        
+        .mic-item { color: #2ECC71; }
+        .time-item { color: #9B59B6; }
+        .money-item { color: #27AE60; }
+        
+        /* Чат */
+        .chat-container {
+            position: absolute;
+            bottom: 120px;
+            right: 20px;
+            width: 360px;
+            max-height: 200px;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 150px;
+            padding: 10px;
+            display: none;
+        }
+        
+        .chat-container.active .chat-messages {
+            display: block;
+        }
+        
+        .message {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: rgba(30, 30, 45, 0.7);
+            border-radius: 5px;
+            word-wrap: break-word;
+            font-size: 13px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .notification {
+            background: rgba(139, 0, 0, 0.3);
+            border-left: 3px solid #FFD700;
+        }
+        
+        .chat-input-container {
+            display: none;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .chat-container.active .chat-input-container {
+            display: flex;
+        }
+        
+        .chat-input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <!-- Название сервера -->
+    <div class="server-name">Gang Role Play</div>
+    
+    <!-- КВАДРАТНЫЙ HUD вместо овального -->
+    <div class="square-hud">
+        <!-- Статистика игрока -->
+        <div class="player-stats">
+            <!-- Здоровье -->
+            <div class="circular-stat">
+                <div class="circular-progress" id="healthCircle" style="--color: #E74C3C;"></div>
+                <div class="circular-content">
+                    <div class="circular-icon health-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="circular-value health-value" id="healthValue">100</div>
+                </div>
+            </div>
+            
+            <!-- Броня -->
+            <div class="circular-stat">
+                <div class="circular-progress" id="armorCircle" style="--color: #3498DB;"></div>
+                <div class="circular-content">
+                    <div class="circular-icon armor-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="circular-value armor-value" id="armorValue">0</div>
+                </div>
+            </div>
+            
+            <!-- Голод -->
+            <div class="circular-stat">
+                <div class="circular-progress" id="hungerCircle" style="--color: #F39C12;"></div>
+                <div class="circular-content">
+                    <div class="circular-icon hunger-icon">
+                        <i class="fas fa-hamburger"></i>
+                    </div>
+                    <div class="circular-value hunger-value" id="hungerValue">100</div>
+                </div>
+            </div>
+            
+            <!-- Жажда -->
+            <div class="circular-stat">
+                <div class="circular-progress" id="thirstCircle" style="--color: #2980B9;"></div>
+                <div class="circular-content">
+                    <div class="circular-icon thirst-icon">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <div class="circular-value thirst-value" id="thirstValue">100</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Дополнительная информация -->
+        <div class="additional-info">
+            <!-- Микрофон -->
+            <div class="info-item mic-item">
+                <div class="info-icon">
+                    <i class="fas fa-microphone" id="micIcon"></i>
+                </div>
+                <div id="micStatus">ON</div>
+            </div>
+            
+            <!-- Время -->
+            <div class="info-item time-item">
+                <div class="info-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div id="timeValue">00:00</div>
+            </div>
+            
+            <!-- Деньги -->
+            <div class="info-item money-item">
+                <div class="info-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div id="moneyValue">$0</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Чат -->
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-container">
+            <input 
+                type="text" 
+                class="chat-input" 
+                id="chatInput" 
+                placeholder="Введите сообщение..." 
+                autocomplete="off"
+            >
+        </div>
+    </div>
+
+    <script>
+        // Элементы интерфейса
+        const healthCircle = document.getElementById('healthCircle');
+        const healthValue = document.getElementById('healthValue');
+        const armorCircle = document.getElementById('armorCircle');
+        const armorValue = document.getElementById('armorValue');
+        const hungerCircle = document.getElementById('hungerCircle');
+        const hungerValue = document.getElementById('hungerValue');
+        const thirstCircle = document.getElementById('thirstCircle');
+        const thirstValue = document.getElementById('thirstValue');
+        const micIcon = document.getElementById('micIcon');
+        const micStatus = document.getElementById('micStatus');
+        const timeValue = document.getElementById('timeValue');
+        const moneyValue = document.getElementById('moneyValue');
+        const chatContainer = document.getElementById('chatContainer');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        
+        // Обновление статистики
+        alt.on('hud:updateStats', (stats) => {
+            // Обновляем круговые индикаторы
+            updateCircle(healthCircle, stats.health);
+            updateCircle(armorCircle, stats.armor);
+            updateCircle(hungerCircle, stats.hunger);
+            updateCircle(thirstCircle, stats.thirst);
+            
+            // Обновляем числовые значения
+            healthValue.textContent = Math.round(stats.health);
+            armorValue.textContent = Math.round(stats.armor);
+            hungerValue.textContent = Math.round(stats.hunger);
+            thirstValue.textContent = Math.round(stats.thirst);
+            
+            // Обновляем деньги
+            moneyValue.textContent = `$${stats.money.toLocaleString()}`;
+        });
+        
+        // Обновление активности микрофона
+        alt.on('voice:setTalking', (isTalking) => {
+            if (isTalking) {
+                micIcon.style.color = '#2ECC71';
+                micStatus.textContent = 'TALK';
+                micStatus.style.color = '#2ECC71';
+            } else {
+                micIcon.style.color = '#E74C3C';
+                micStatus.textContent = 'MUTE';
+                micStatus.style.color = '#E74C3C';
+            }
+        });
+        
+        // Обновление времени
+        alt.on('hud:updateTime', (time) => {
+            const hours = time.hours.toString().padStart(2, '0');
+            const minutes = time.minutes.toString().padStart(2, '0');
+            timeValue.textContent = `${hours}:${minutes}`;
+        });
+        
+        // Функция обновления кругового индикатора
+        function updateCircle(element, percent) {
+            const clamped = Math.max(0, Math.min(100, percent));
+            const degrees = (clamped / 100) * 360;
+            element.style.background = `
+                conic-gradient(
+                    var(--color) 0deg,
+                    var(--color) ${degrees}deg,
+                    transparent ${degrees}deg,
+                    transparent 360deg
+                )
+            `;
+        }
+        
+        // Обработка чата
+        alt.on('chat:setActive', (active) => {
+            chatContainer.classList.toggle('active', active);
+            if (active) {
+                chatInput.focus();
+            }
+        });
+        
+        alt.on('chat:updateMessages', (messages) => {
+            chatMessages.innerHTML = '';
+            messages.forEach(msg => {
+                const msgElement = document.createElement('div');
+                msgElement.className = 'message';
+                msgElement.textContent = msg;
+                chatMessages.appendChild(msgElement);
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+        
+        alt.on('hud:notification', (message) => {
+            const notification = document.createElement('div');
+            notification.className = 'message notification';
+            notification.textContent = message;
+            chatMessages.appendChild(notification);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+        
+        // Отправка сообщений
+        chatInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                const message = chatInput.value.trim();
+                if (message !== '') {
+                    if (message.startsWith('/')) {
+                        handleCommand(message);
+                    } else {
+                        alt.emit('chat:message', message);
+                    }
+                    chatInput.value = '';
+                }
+            }
+        });
+        
+        // Обработка команд
+        function handleCommand(command) {
+            alt.emit('chat:command', command);
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            // Запрашиваем начальные данные
+            alt.emit('hud:requestStats');
+            alt.emit('hud:requestTime');
+            alt.emit('voice:requestStatus');
+            
+            // Установка времени обновления
+            setInterval(() => {
+                alt.emit('hud:requestTime');
+            }, 60000);
+        });
+    </script>
+</body>
+</html>
