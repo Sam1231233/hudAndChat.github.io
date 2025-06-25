@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gang RolePlay HUD</title>
     <style>
@@ -9,7 +10,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Roboto', 'Arial', sans-serif;
         }
         
         body {
@@ -18,6 +19,7 @@
             background: transparent;
             height: 100vh;
             width: 100vw;
+            font-family: 'Roboto', sans-serif;
         }
         
         /* Название сервера */
@@ -159,7 +161,7 @@
             overflow-y: auto;
             max-height: 250px;
             padding: 10px;
-            display: block; /* Всегда видимый чат */
+            display: block;
             font-size: 14px;
         }
         
@@ -209,6 +211,7 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Название сервера -->
@@ -291,7 +294,7 @@
         </div>
     </div>
     
-    <!-- Чат в стиле SAMP - левый верхний угол -->
+    <!-- Чат -->
     <div class="chat-container" id="chatContainer">
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-container">
@@ -327,7 +330,7 @@
         // Проверка на наличие alt объекта
         const hasAlt = typeof alt !== 'undefined';
         
-        // Фиксированный список сообщений (для сохранения истории)
+        // История сообщений
         let messageHistory = [];
         const MAX_HISTORY = 100;
         
@@ -337,7 +340,7 @@
                 updateStats(stats);
             });
         } else {
-            // Для демонстрации на GitHub Pages
+            // Демо-режим для GitHub Pages
             setInterval(() => {
                 updateStats({
                     health: Math.random() * 100,
@@ -379,34 +382,6 @@
                 updateMicStatus(isTalking);
             });
         }
-
-        chatInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-            const message = chatInput.value.trim();
-            if (message !== '') {
-                if (hasAlt) {
-                    // ОТПРАВКА ЧЕРЕЗ КЛИЕНТСКИЙ СКРИПТ
-                    alt.emit('chat:sendInput', message);
-                } else {
-                    // Для демонстрации
-                    addMessageToChat(`Вы: ${message}`);
-                }
-                chatInput.value = '';
-                setChatActive(false);
-            }
-        }
-    });
-
-    // Обработчик отправки сообщения
-    if (hasAlt) {
-        alt.on('chat:sendInput', (message) => {
-            // ДЕБАГ: Логируем введенное сообщение
-            console.log(`[WEBVIEW] Отправка сообщения: ${message}`);
-            
-            // Отправляем на сервер
-            alt.emit('chat:message', message);
-        });
-    }
         
         function updateMicStatus(isTalking) {
             if (isTalking) {
@@ -426,7 +401,7 @@
                 updateTime(time);
             });
         } else {
-            // Для демонстрации на GitHub Pages
+            // Демо-режим
             setInterval(() => {
                 const now = new Date();
                 updateTime({
@@ -460,6 +435,10 @@
         if (hasAlt) {
             alt.on('chat:setActive', (active) => {
                 setChatActive(active);
+            });
+            
+            alt.on('chat:requestFocus', () => {
+                chatInput.focus();
             });
         }
         
@@ -521,15 +500,13 @@
                 const message = chatInput.value.trim();
                 if (message !== '') {
                     if (hasAlt) {
-                        // Передаем сообщение через callback
+                        // Отправляем сообщение
                         alt.emit('chat:sendInput', message);
                     } else {
-                        // Для демонстрации на GitHub Pages
+                        // Демо-режим
                         addMessageToChat(`Вы: ${message}`);
                     }
                     chatInput.value = '';
-                    
-                    // Закрываем чат после отправки
                     setChatActive(false);
                 }
             }
@@ -538,9 +515,6 @@
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             if (hasAlt) {
-                // Запрашиваем начальные данные
-                alt.emit('hud:requestInitialData');
-                
                 // Добавляем сообщение о подключении
                 addNotification('Вы подключились к серверу');
             } else {
