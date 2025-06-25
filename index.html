@@ -138,53 +138,49 @@
         .time-item { color: #9B59B6; }
         .money-item { color: #27AE60; }
         
-        /* Чат - ПЕРЕМЕЩЕН В ЛЕВЫЙ ВЕРХНИЙ УГОЛ */
+        /* Чат в стиле SAMP - левый верхний угол */
         .chat-container {
             position: absolute;
-            top: 20px; /* Изменено с bottom на top */
-            left: 20px; /* Изменено с right на left */
-            width: 360px;
-            max-height: 200px;
+            top: 20px;
+            left: 20px;
+            width: 500px;
+            max-height: 300px;
             display: flex;
             flex-direction: column;
             z-index: 100;
-            background: rgba(10, 10, 20, 0.85);
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 5px;
             overflow: hidden;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 215, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .chat-messages {
             flex-grow: 1;
             overflow-y: auto;
-            max-height: 150px;
+            max-height: 250px;
             padding: 10px;
-            display: none;
-        }
-        
-        .chat-container.active .chat-messages {
-            display: block;
+            display: block; /* Всегда видимый чат */
+            font-size: 14px;
         }
         
         .message {
-            padding: 8px 10px;
-            margin-bottom: 5px;
-            background: rgba(30, 30, 45, 0.7);
-            border-radius: 5px;
+            padding: 5px 8px;
+            margin-bottom: 3px;
+            border-radius: 3px;
             word-wrap: break-word;
-            font-size: 13px;
-            animation: fadeIn 0.3s ease;
+            line-height: 1.4;
+            background: rgba(0, 0, 0, 0.5);
         }
         
         .notification {
+            color: #FFD700;
             background: rgba(139, 0, 0, 0.3);
-            border-left: 3px solid #FFD700;
+            border-left: 2px solid #FFD700;
         }
         
         .chat-input-container {
             display: none;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
@@ -194,7 +190,7 @@
         
         .chat-input {
             flex-grow: 1;
-            padding: 12px 15px;
+            padding: 10px 12px;
             background: transparent;
             border: none;
             color: white;
@@ -295,7 +291,7 @@
         </div>
     </div>
     
-    <!-- Чат - ПЕРЕМЕЩЕН В ЛЕВЫЙ ВЕРХНИЙ УГОЛ -->
+    <!-- Чат в стиле SAMP - левый верхний угол -->
     <div class="chat-container" id="chatContainer">
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-container">
@@ -367,7 +363,7 @@
             thirstValue.textContent = Math.round(stats.thirst);
             
             // Обновляем деньги (с защитой от ошибки)
-            moneyValue.textContent = `$${stats.money?.toLocaleString() || '0'}`;
+            moneyValue.textContent = `$${(stats.money || 0).toLocaleString()}`;
         }
         
         // Обновление информации о сервере
@@ -447,34 +443,25 @@
         }
         
         if (hasAlt) {
-            alt.on('chat:updateMessages', (messages) => {
-                // Сохраняем все сообщения в истории
-                messageHistory = [...messageHistory, ...messages];
-                
-                // Ограничиваем историю
-                if (messageHistory.length > MAX_HISTORY) {
-                    messageHistory = messageHistory.slice(messageHistory.length - MAX_HISTORY);
-                }
-                
-                updateChatMessages(messageHistory);
+            alt.on('chat:addMessage', (message) => {
+                addMessageToChat(message);
             });
-        }
-        
-        function updateChatMessages(messages) {
-            chatMessages.innerHTML = '';
-            messages.forEach(msg => {
-                const msgElement = document.createElement('div');
-                msgElement.className = msg.startsWith('*') ? 'message notification' : 'message';
-                msgElement.textContent = msg;
-                chatMessages.appendChild(msgElement);
-            });
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        if (hasAlt) {
-            alt.on('hud:notification', (message) => {
+            
+            alt.on('chat:addNotification', (message) => {
                 addNotification(message);
             });
+        }
+        
+        function addMessageToChat(message) {
+            // Добавляем сообщение в историю
+            messageHistory.push(message);
+            
+            // Ограничиваем историю
+            if (messageHistory.length > MAX_HISTORY) {
+                messageHistory = messageHistory.slice(messageHistory.length - MAX_HISTORY);
+            }
+            
+            updateChatMessages();
         }
         
         function addNotification(message) {
@@ -486,7 +473,18 @@
                 messageHistory = messageHistory.slice(messageHistory.length - MAX_HISTORY);
             }
             
-            updateChatMessages(messageHistory);
+            updateChatMessages();
+        }
+        
+        function updateChatMessages() {
+            chatMessages.innerHTML = '';
+            messageHistory.forEach(msg => {
+                const msgElement = document.createElement('div');
+                msgElement.className = msg.startsWith('*') ? 'message notification' : 'message';
+                msgElement.textContent = msg.startsWith('*') ? msg.substring(2) : msg;
+                chatMessages.appendChild(msgElement);
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
         // Отправка сообщений
@@ -495,11 +493,10 @@
                 const message = chatInput.value.trim();
                 if (message !== '') {
                     if (hasAlt) {
-                        // Исправление для команд
-                        alt.emit('chat:message', message);
+                        alt.emit('chat:sendMessage', message);
                     } else {
                         // Для демонстрации на GitHub Pages
-                        addNotification(`Сообщение отправлено: ${message}`);
+                        addMessageToChat(`Вы: ${message}`);
                     }
                     chatInput.value = '';
                     
@@ -515,14 +512,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (hasAlt) {
                 // Запрашиваем начальные данные
-                alt.emit('hud:requestStats');
-                alt.emit('hud:requestTime');
-                alt.emit('voice:requestStatus');
+                alt.emit('hud:requestInitialData');
                 
-                // Установка времени обновления
-                setInterval(() => {
-                    alt.emit('hud:requestTime');
-                }, 60000);
+                // Добавляем сообщение о подключении
+                addNotification('Вы подключились к серверу');
             } else {
                 // Демо-режим для GitHub Pages
                 updateTime({
@@ -542,16 +535,9 @@
                 
                 // Добавляем демо-сообщения
                 setTimeout(() => {
-                    updateChatMessages([
-                        "Добро пожаловать на Gang RolePlay!",
-                        "Используйте T для открытия чата",
-                        "Команды: /heal, /veh, /fly"
-                    ]);
-                    messageHistory = [
-                        "Добро пожаловать на Gang RolePlay!",
-                        "Используйте T для открытия чата",
-                        "Команды: /heal, /veh, /fly"
-                    ];
+                    addMessageToChat("Добро пожаловать на Gang RolePlay!");
+                    addMessageToChat("Используйте T для открытия чата");
+                    addNotification("Команды: /heal, /veh, /fly");
                 }, 1000);
             }
         });
